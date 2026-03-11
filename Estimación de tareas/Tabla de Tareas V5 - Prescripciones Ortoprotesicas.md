@@ -25,12 +25,12 @@ Documento generado a partir del Enfoque PM/BA V5 y cruzado con el Excel de estim
 | 10 | AUTH | Modo acceso | Modo con/sin paciente | Adaptación de interfaz según modo de acceso (con paciente: preselecciona paciente; sin paciente: muestra todas las prescripciones del facultativo) | Front | — | | Nueva |
 | 11 | CATÁLOGO | BBDD | Diseño BBDD | Diseño de base de datos del catálogo: campos del nomenclátor del Departamento + campos propios de Osakidetza | Back | T-007 | | |
 | 12 | CATÁLOGO | BBDD | Diseño BBDD | Creación y pruebas de base de datos del catálogo | Back | T-008 | | |
-| 13 | CATÁLOGO | BBDD | Gobierno de edición | Definición y desarrollo de campos propios de Osakidetza (activo sí/no, favoritos por facultativo, campos adicionales) | Back | — | | Nueva. T-007/T-008 solo cubren el diseño general; falta la capa de campos propios |
-| 14 | CATÁLOGO | Sincronización | Carga masiva | Proceso de carga/recarga masiva del catálogo desde nomenclátor del Departamento (batch periódico, ~1.000 productos) | Back | T-009 | | |
-| 15 | CATÁLOGO | Sincronización | Carga bajo demanda | Ejecución manual del proceso de sincronización fuera de ciclo | Back | T-010 | | |
-| 16 | CATÁLOGO | Sincronización | Réplica y failover | Réplica operativa 24x7 del nomenclátor en Osakidetza: mecanismo de failover si la sincronización falla | Back | — | | Nueva. T-009/T-010 solo cubren la carga; falta el mecanismo de réplica/failover |
-| 17 | CATÁLOGO | Gestión catálogo | Pantalla gestión | Pantalla de gestión/administración del catálogo: listado con filtros, ficha de producto editable (campos Osakidetza), activar/desactivar productos | Front | T-011 | | |
-| 18 | CATÁLOGO | Gestión catálogo | APIs catálogo | APIs CRUD de gestión del catálogo | Back | T-012 | | |
+| 13 | CATÁLOGO | BBDD | Gobierno de edición | Definición y desarrollo de campos propios de Osakidetza (activo sí/no, favoritos por facultativo, campos de caracterización de producto, campos adicionales para reglas de indicación) | Back | — | | Nueva. Ampliada: incluye campos de caracterización de productos (decisión cliente 11/03/2026) |
+| 14 | CATÁLOGO | Sincronización | Carga masiva por ficheros | Proceso de importación periódica de ficheros del nomenclátor del Departamento (~1.000 productos): lectura, parseo, validación de formato/contenido, carga en BBDD, gestión de errores (duplicados, campos faltantes, formatos incorrectos), log de auditoría de cada carga. NO se usa replicación BBDD (Golden Gate descartado por coste) | Back | T-009 | | Actualizada: la carga es por importación de ficheros (CSV/XML/otro), no por sincronización genérica de BBDD |
+| 15 | CATÁLOGO | Sincronización | Carga bajo demanda por ficheros | Ejecución manual del mismo proceso de importación de ficheros fuera de ciclo. Incluye subida manual del fichero por parte del administrador | Back | T-010 | | Actualizada: misma lógica de ficheros que #14 pero ejecución manual |
+| 16 | CATÁLOGO | Sincronización | Gestión de ficheros y failover | Mecanismo de recepción de ficheros del Departamento (SFTP, carpeta compartida o API de descarga), validación previa al procesamiento, gestión de reintentos si la importación falla, y garantía de disponibilidad 24x7 del catálogo local | Back | — | | Actualizada: pasa de réplica BBDD a gestión de ficheros + failover local |
+| 17 | CATÁLOGO | Gestión catálogo | Pantalla gestión | Pantalla de gestión/administración del catálogo: listado con filtros, ficha de producto editable (campos Osakidetza + campos de caracterización), activar/desactivar productos | Front | T-011 | | Ampliada: incluye campos de caracterización de producto (decisión cliente 11/03/2026) |
+| 18 | CATÁLOGO | Gestión catálogo | APIs catálogo | APIs CRUD de gestión del catálogo incluyendo campos de caracterización | Back | T-012 | | Ampliada: incluye persistencia de caracterización |
 | 19 | CATÁLOGO | Búsqueda | Pantalla búsqueda | Pantalla/diálogo de búsqueda de catálogo de productos, con filtros y acceso al detalle | Front | T-013 | | |
 | 20 | CATÁLOGO | Búsqueda | Filtro por tipo | Filtro de productos por tipo | Back | T-014 | | |
 | 21 | CATÁLOGO | Búsqueda | Filtro por familia | Filtro de producto por familia (grupo > subgrupo > categoría) | Back | T-015 | | |
@@ -115,6 +115,12 @@ Documento generado a partir del Enfoque PM/BA V5 y cruzado con el Excel de estim
 | 100 | TRANSVERSAL | QA | QA front | Pruebas y tests unitarios: front (plan de pruebas de casos de uso) | Front | T-056 | | Revisar: 120h (~10% del desarrollo); con la complejidad de la máquina de estados podría quedarse corto |
 | 101 | TRANSVERSAL | QA | QA back | Pruebas y tests unitarios: back | Back | T-057 | | Revisar: 120h; mismo comentario que #100 |
 | 102 | TRANSVERSAL | ETL Reporting | ETL datos reporting | ETL de extracción de datos de prescripciones y carga en BBDD de reporting | Back | T-058 | | ELIMINADA DEL ALCANCE. Reporting/ETL fue excluido del proyecto; esta tarea debería desaparecer |
+| 103 | MANTENIMIENTO | Reglas indicación | Modelo de datos reglas | Diseño e implementación del modelo de datos para reglas de indicación por producto: tipos de regla (especialidad, edad, sexo, diagnóstico, límite renovación, requisito documental, etc.), condiciones, acciones, vigencia | Back | — | | Nueva (decisión cliente 11/03/2026). Crítica: sin modelo de reglas no se puede implementar la validación |
+| 104 | MANTENIMIENTO | Reglas indicación | Pantalla admin reglas | Pantalla de administración de reglas de indicación: crear, editar, desactivar reglas por producto o grupo de productos. Incluye vista de reglas vigentes y histórico | Front | — | | Nueva (decisión cliente 11/03/2026) |
+| 105 | MANTENIMIENTO | Reglas indicación | APIs CRUD reglas | APIs CRUD para gestión de reglas de indicación (crear, editar, desactivar, consultar por producto) | Back | — | | Nueva (decisión cliente 11/03/2026) |
+| 106 | MANTENIMIENTO | Reglas indicación | Motor validación reglas | Motor/servicio de validación que aplica las reglas de indicación configuradas cuando un facultativo prescribe un producto. Devuelve errores/advertencias si no se cumplen condiciones. Consumido por el Módulo 3 (Prescripción) | Back | — | | Nueva (decisión cliente 11/03/2026). Crítica: conecta mantenimiento con prescripción |
+| 107 | PRESCRIPCIÓN | Validación | Integrar reglas indicación | Integrar en el flujo de prescripción la llamada al motor de validación de reglas de indicación: al añadir producto, mostrar errores/advertencias basados en reglas configuradas | Front | — | | Nueva (decisión cliente 11/03/2026). Complemento front del motor de validación |
+| 108 | CATÁLOGO | Sincronización | Log importación ficheros | Pantalla de consulta del log/histórico de importaciones de ficheros: fecha, fichero procesado, registros cargados, errores detectados, estado de la carga | Front | — | | Nueva. Necesaria para trazabilidad de las cargas por fichero |
 
 ---
 
@@ -122,12 +128,13 @@ Documento generado a partir del Enfoque PM/BA V5 y cruzado con el Excel de estim
 
 | Concepto | Cantidad |
 |---|---|
-| Tareas totales | 102 |
+| Tareas totales | 108 |
 | Tareas del Excel original conservadas | 48 |
-| Tareas nuevas (no estaban en el Excel) | 54 |
+| Tareas nuevas (no estaban en el Excel) | 60 |
 | Tareas marcadas para revisión | 12 |
 | Tareas marcadas como potencialmente redundantes | 3 |
 | Tareas eliminadas del alcance | 1 (T-058 ETL) |
+| Tareas añadidas por decisiones cliente 11/03/2026 | 6 (#103–#108) |
 
 ### Tareas con comentarios de redundancia o eliminación
 

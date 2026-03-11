@@ -76,18 +76,22 @@ URL web directa con login LDAP/AD corporativo. Para pruebas, perfiles no-Osabide
 
 Osakidetza siempre trabaja contra su propia copia de la base de datos. No se consulta directamente al Departamento.
 
+**Mecanismo de integración**: La sincronización del nomenclátor del Departamento se realiza **mediante ficheros** (CSV, XML u otro formato plano acordado). Se descarta expresamente el uso de herramientas de replicación de base de datos (Oracle Golden Gate o similares) por motivos de coste. El sistema debe implementar un proceso de importación que lea, parsee, valide y cargue los ficheros recibidos del Departamento.
+
 | Funcionalidad | Descripción |
 |---|---|
 | BBDD propia del catálogo | Modelo de datos con campos del nomenclátor del Departamento + campos propios de Osakidetza. Se trae la base de datos del Departamento y se crea una BBDD que contenga lo que Osakidetza necesite |
-| Carga masiva (batch) | Proceso periódico de sincronización desde el nomenclátor del Departamento (~1.000 productos) |
-| Carga bajo demanda | Ejecución manual del mismo proceso fuera de ciclo |
+| Carga masiva (batch) mediante ficheros | Proceso periódico de importación de ficheros desde el nomenclátor del Departamento (~1.000 productos). Incluye parseo, validación de formato/contenido, gestión de errores (duplicados, campos faltantes, formatos incorrectos) y log de auditoría de cada carga |
+| Carga bajo demanda mediante ficheros | Ejecución manual del mismo proceso de importación de ficheros fuera de ciclo |
 | Pantalla de gestión catálogo | Listado con filtros + ficha de producto editable (campos Osakidetza) + activar/desactivar. Osakidetza puede decidir no recetar un producto que venga del Departamento |
 | Búsqueda ágil de productos | Filtros por tipo, familia (grupo > subgrupo > categoría), código, descripción. Accesible desde la prescripción |
 | Selección de productos | Pantalla de selección dentro de prescripción: favoritos primero + productos similares. Aunque el facultativo no tenga permisos para un producto, debe ver el catálogo completo (productos sin permiso aparecen como no disponibles para que pueda solicitar permisos si es un error) |
 | Gestión de favoritos | El favorito es un dato por facultativo que se almacena en la BBDD de Osakidetza. Lo marca el propio facultativo desde la prescripción |
 | Gobierno de edición | Se traen los datos del Departamento, se crean tablas propias de Osakidetza, y se añade la información necesaria para la gestión de la prescripción |
 
-> **Esquema de datos del catálogo**: Datos del Departamento (código, descripción, familia, tipo, requiere visado, protocolo, precio) + Datos de Osakidetza (activo sí/no, favorito por facultativo, campos propios pendientes de definir).
+> **Esquema de datos del catálogo**: Datos del Departamento (código, descripción, familia, tipo, requiere visado, protocolo, precio) + Datos de Osakidetza (activo sí/no, favorito por facultativo, reglas de indicación, campos propios pendientes de definir).
+
+> **Nota sobre integración por ficheros (decisión del cliente 11/03/2026)**: No se utilizarán herramientas de replicación tipo Oracle Golden Gate. La integración será mediante ficheros. Queda pendiente acordar con el Departamento: formato exacto del fichero (CSV/XML/otro), protocolo de entrega (SFTP, carpeta compartida, API de descarga), periodicidad y responsable del envío.
 
 ---
 
@@ -327,11 +331,17 @@ Las tareas pendientes se visualizan al entrar al módulo de prescripciones, fuer
 
 ### MÓDULO 5 — MANTENIMIENTO Y ADMINISTRACIÓN
 
+> **Ampliación de alcance (decisión del cliente 11/03/2026)**: El cliente solicita expresamente un módulo de mantenimiento de productos ortoprotésicos en Osakidetza que permita **caracterizar los productos y definir reglas de indicación** para la prescripción. Esto va más allá de la simple activación/desactivación y requiere un submódulo de reglas de negocio por producto.
+
 | Funcionalidad | Descripción |
 |---|---|
 | Gestión de catálogo | Listado, edición de campos propios Osakidetza, activar/desactivar productos |
+| Caracterización de productos | Pantalla de ficha ampliada del producto donde se pueden definir atributos propios de Osakidetza que complementen los datos del Departamento (más allá de activo/inactivo y favoritos): campos clínicos, administrativos o de gestión que Osakidetza necesite para la prescripción |
+| Reglas de indicación por producto | Módulo para definir y gestionar reglas que condicionan la prescripción de cada producto: qué especialidades pueden prescribirlo, si requiere justificación adicional, restricciones de edad/sexo del paciente, límites de renovación, requisitos documentales, etc. Estas reglas las consume el Módulo 3 (Prescripción) para validar en tiempo de prescripción |
+| Pantalla de administración de reglas | Interfaz para que el administrador defina, edite y desactive reglas de indicación por producto o grupo de productos |
+| Motor de validación de reglas | Servicio back que aplica las reglas de indicación configuradas cuando un facultativo prescribe un producto, devolviendo errores/advertencias si no se cumplen las condiciones |
 | Gestión de establecimientos | Tener el dato de qué establecimiento dispensó, a qué precio y quién. Mantener el listado de establecimientos |
-| Configuraciones del sistema | Parámetros operativos (plazos de caducidad, configuraciones de sincronización) |
+| Configuraciones del sistema | Parámetros operativos (plazos de caducidad, configuraciones de sincronización, formato de ficheros de importación) |
 
 ---
 
@@ -402,7 +412,7 @@ flowchart LR
 | DEP-02 | eOsabide / Osabide Integra | → Sistema | Token sesión, contexto profesional | Token en llamada de apertura | Alta |
 | DEP-03 | Osategi | → Sistema | Datos paciente (TIS, CIP, nombre, sexo, nacimiento, domicilio) vía CIC | Servicio web | Crítica |
 | DEP-04 | SAP RRHH | → Sistema | Datos facultativo (nº colegiado, especialidad, centro, servicio) | API / BBDD | Crítica |
-| DEP-05 | Nomenclátor del Departamento | → Sistema | Catálogo completo con familias, flags visado, precios | Sincronización batch + réplica local | Crítica |
+| DEP-05 | Nomenclátor del Departamento | → Sistema | Catálogo completo con familias, flags visado, precios | **Importación de ficheros** (CSV/XML/otro formato plano); se descarta replicación BBDD tipo Golden Gate | Crítica |
 | DEP-06 | Giltza / Izenpe | ↔ Sistema | Documento a firmar / documento firmado + CSV | Servicio de firma digital | Crítica |
 | DEP-07 | Sistema de Visado (Depto.) | ↔ Sistema | Solicitud visado / Estado visado (push inmediato) | API evento (Osakidetza crea el servicio receptor; las APIs del Dpto. son un proyecto separado) | Crítica |
 | DEP-08 | Sistema Dispensación (Ortopedias) | ↔ Sistema | Consulta prescripciones dispensables / bloqueo / desbloqueo / dispensación. Datos del Departamento | API interoperabilidad | Alta |
@@ -443,6 +453,8 @@ flowchart LR
 | RN-15 | Datos del paciente se precargan automáticamente desde Osategi vía CIC; no se buscan manualmente como en Aragón |
 | RN-16 | La dispensación puede ser parcial: la ortopedia puede dispensar solo parte de los materiales |
 | RN-17 | Persistencia propia: BBDD del módulo. Otros sistemas consultan mediante servicio expuesto por este desarrollo |
+| RN-18 | La integración del nomenclátor del Departamento se realiza mediante ficheros (CSV/XML/otro formato plano). No se utilizan herramientas de replicación de BBDD tipo Oracle Golden Gate (decisión del cliente por motivos de coste) |
+| RN-19 | Los productos ortoprotésicos pueden tener reglas de indicación propias de Osakidetza que condicionan quién y bajo qué condiciones puede prescribirlos. Estas reglas se configuran desde el módulo de mantenimiento y se aplican en tiempo de prescripción |
 
 ---
 
@@ -454,8 +466,9 @@ flowchart LR
 |---|---|
 | Pantalla inicio con avisos/dashboard | Falta tarea específica |
 | Cambio de rol en sesión | Falta tarea front + back |
-| Réplica operativa 24x7 del nomenclátor en Osakidetza | Falta tarea de sincronización y failover |
+| Réplica operativa 24x7 del nomenclátor en Osakidetza | Falta tarea de sincronización y failover. Aclarado: la integración será por ficheros, no por replicación BBDD |
 | Gobierno de edición de campos Osakidetza | Falta definición + desarrollo de la BBDD con campos propios |
+| Módulo de caracterización de productos y reglas de indicación | Nueva necesidad confirmada por el cliente (11/03/2026). Requiere modelo de datos, pantallas de administración, motor de validación |
 | Gestión de establecimientos | Falta pantalla y APIs |
 | Eliminar prescripción | Hay API back pero falta acción en front |
 | Histórico de la prescripción | Falta tarea de auditoría/histórico |
@@ -473,7 +486,7 @@ flowchart LR
 |---|---|
 | T-001/T-002: Multi-idioma (120h) | ¿El framework ya lo soporta? |
 | T-003: API configuraciones (40h) | Mezcla configuraciones + roles; separar |
-| T-009/T-010: Carga masiva/on-demand (60h) | Falta réplica/failover |
+| T-009/T-010: Carga masiva/on-demand (60h) | Falta réplica/failover. Actualizado: la carga es por importación de ficheros (no replicación BBDD). Requiere parseo, validación, gestión de errores y log de auditoría |
 | T-027/T-028: Info facultativo/paciente (80h) | No especifica si es API, BBDD directa o ambas |
 | T-032: Firmar prescripción front (10h) | Posiblemente subestimado para integración Giltza |
 | T-040: Firmar prescripción back (40h) | ¿Redundante con T-032? Parece par front/back |
@@ -496,6 +509,8 @@ flowchart LR
 | R6 | Excel de estimación incompleto (14 necesidades + 12 revisiones) | Desviación de alcance y esfuerzo | Contrastar con este documento |
 | R7 | Complejidad de máquina de estados | Bugs en producción | Definir máquina de estados formal + pruebas exhaustivas |
 | R8 | Dato de eOsabide no claro | Posible duplicidad o carencia de datos del facultativo | Aclarar qué datos proporciona exactamente |
+| R9 | Formato y protocolo de ficheros de nomenclátor sin definir | No se puede implementar la importación sin conocer el formato exacto (CSV/XML/otro), campos, codificación, protocolo de entrega (SFTP, carpeta, API) y periodicidad | Acordar especificación técnica del fichero con el Departamento |
+| R10 | Alcance del módulo de reglas de indicación sin especificar | Sin conocer qué tipos de reglas se requieren, el modelo de datos y las pantallas pueden no cubrir la necesidad real | Taller funcional con Osakidetza para definir catálogo de tipos de reglas de indicación |
 
 ---
 
@@ -511,6 +526,8 @@ flowchart LR
 | P-06 | **Reversión de dispensación**: ¿Aplica la posibilidad de revertir una dispensación en las primeras 72 horas? |
 | P-07 | **Contrato API de dispensación**: ¿Qué datos exactos devuelve la ortopedia al confirmar la dispensación? Se espera que sean los que proporcione el Departamento, pero hay que definirlos |
 | P-08 | **Dispensación parcial — regla de visualización**: La dispensación puede ser parcial. ¿Cómo se visualiza al prescriptor el estado material a material? Definir UX |
+| P-09 | **Formato del fichero de nomenclátor**: ¿Qué formato tendrá el fichero que envía el Departamento (CSV, XML, JSON, Excel)? ¿Qué campos contiene? ¿Qué codificación de caracteres? ¿Tiene cabecera? ¿Cómo se entregan (SFTP, carpeta compartida, endpoint descargable)? ¿Con qué periodicidad? |
+| P-10 | **Catálogo de reglas de indicación**: ¿Qué tipos de reglas de indicación necesita Osakidetza? ¿Restricciones por especialidad, edad, sexo, diagnóstico, límites de renovación, requisitos documentales? ¿Quién las configura (administrador funcional)? ¿Deben ser auditables? |
 
 ---
 
