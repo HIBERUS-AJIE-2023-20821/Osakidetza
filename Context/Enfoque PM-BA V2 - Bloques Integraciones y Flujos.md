@@ -528,12 +528,17 @@ flowchart LR
 | P-08 | **Dispensación parcial — regla de visualización**: La dispensación puede ser parcial. ¿Cómo se visualiza al prescriptor el estado material a material? Definir UX |
 | P-09 | **Formato del fichero de nomenclátor**: ¿Qué formato tendrá el fichero que envía el Departamento (CSV, XML, JSON, Excel)? ¿Qué campos contiene? ¿Qué codificación de caracteres? ¿Tiene cabecera? ¿Cómo se entregan (SFTP, carpeta compartida, endpoint descargable)? ¿Con qué periodicidad? |
 | P-10 | **Catálogo de reglas de indicación**: ¿Qué tipos de reglas de indicación necesita Osakidetza? ¿Restricciones por especialidad, edad, sexo, diagnóstico, límites de renovación, requisitos documentales? ¿Quién las configura (administrador funcional)? ¿Deben ser auditables? |
+| P-11 | **Bloqueo de dispensación: ¿por prescripción o por material?** El Excel original (T-051) habla de «bloquear prescripción». El enfoque funcional, al contemplar dispensación parcial material a material, asume bloqueo por material. Si la dispensación puede ser parcial (RN-16), el bloqueo debería ser por material. Confirmar con el cliente cuál es la granularidad correcta, ya que impacta en la arquitectura de dispensación (tareas #75, #76, #82, #83). |
+| P-12 | **Canal de solicitud de visado al Departamento**: ¿Existe actualmente un canal electrónico (API, servicio web, mensaje) para enviar la solicitud de visado al Departamento? ¿O el proceso es exclusivamente en papel, con el paciente como portador del documento? Si no hay canal electrónico, la tarea #78 debe transformarse en generación de documento para impresión. Impacta en tareas #78 y #79. |
+| P-13 | **Gestión de establecimientos (ortopedias): ¿competencia de Osakidetza o del Departamento?** ¿El catálogo de establecimientos/ortopedias lo mantiene el Departamento y llega como dato maestro (similar al nomenclátor)? ¿O Osakidetza necesita mantener su propio catálogo de establecimientos? Si es del Departamento, las tareas #92 y #93 se eliminarían (-40h). |
+| P-14 | **Unificación de pacientes**: ¿Se confirma que el proceso de unificación de pacientes no se abordará en este proyecto, al requerir un cambio global que afecta a Departamento, Osakidetza y establecimientos? Si se confirma, la tarea #98 se eliminaría del alcance (-24h) y quedaría como requisito futuro. |
+| P-15 | **Acceso al módulo sin paciente en contexto**: ¿Puede un facultativo acceder al módulo de prescripciones ortoprotésicas sin tener una cita activa con un paciente (por ejemplo, para gestionar sus tareas pendientes, revisar el dashboard de avisos o consultar prescripciones anteriores)? ¿O el acceso siempre se realiza desde Osabide Global con un paciente preseleccionado? Impacta en tareas #9 y #10. |
 
 ---
 
 ## 9. Siguiente paso
 
-1. Resolver las **8 preguntas abiertas** (P-01 a P-08).
+1. Resolver las **15 preguntas abiertas** (P-01 a P-15).
 2. Ajustar el Excel de tareas con las necesidades no cubiertas y las revisiones identificadas.
 3. Generar épicas por módulo con criterios de aceptación.
 4. Desglosar en tareas por equipo (frontend, backend, integración, QA).
